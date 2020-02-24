@@ -8,8 +8,9 @@ import os
 def load_dataset():
     raise NotImplementedError
 
-def preprocess_dataset():
+def preprocess_dataset(df):
     raise NotImplementedError
+
 
 def export_dataset():
     raise NotImplementedError
@@ -30,7 +31,6 @@ df.sort_values(by=['RID','EXAMDATE'], inplace=True)
 df['AGE_AT_EXAM'] = df_grouped.values
 df['AGE_INT'] = df['AGE_AT_EXAM'].apply(int)
 df.reset_index(drop=True)
-
 
 # map the diagnosis values to those specified by the TADPOLE challenge
 dx_map = {
@@ -65,31 +65,19 @@ columns_of_interest = []
 for feature_list in features.values():
     columns_of_interest += feature_list
 
-
-# The csf columns should definitely be numeric...
+# The csf columns should be numeric
 for feature in features['csf']:
     df[feature] = pd.to_numeric(df[feature], errors='coerce')
 
-
-# ## Making the benchmark datasets
-
+## Making the benchmark datasets
 
 excluded_features = features['pet'] + features['csf']
 benchmark_df = df[[feature for feature in columns_of_interest if feature not in excluded_features]].dropna()
-benchmark_df
-
 
 # why are there 2s in the APOE4 column?
-
-
 # Looks like around 10% of the APOE4 data have a value of 2...
-
 # Just as a quick fix for the moment we'll drop these values until we figure out what's going on.
-
-
 benchmark_no2s_df = benchmark_df[benchmark_df['APOE4'] != 2.].reset_index(drop=True)
-benchmark_no2s_df
-
 
 # add future predictions
 
@@ -109,24 +97,6 @@ benchmark_with_targets[target_features] = grouped_by_rid[features['prediction']]
 
 # drop those with NaNs in the target features
 benchmark_with_targets.dropna(inplace=True)
-benchmark_with_targets
-
-
-# seperate train and test sets based on whether participant is in D2
-# we're treating each visit as a seperate sample from the disease progression
-
-train = benchmark_with_targets[benchmark_with_targets['D2'] != 1]
-test = benchmark_with_targets[benchmark_with_targets['D2'] == 1]
-
-assert len(train) + len(test) == len(benchmark_with_targets)
-
-print(f'train set size: {len(train)}')
-print(f'test set size: {len(test)}')
-print(f'full set size: {len(benchmark_with_targets)}')
-
-# hmm... looks like we have a larger test set than training set...
-
-
 
 # shuffle the data
 import numpy as np
@@ -134,15 +104,11 @@ import numpy as np
 np.random.seed(42) # for reproducibility
 
 shuffled_df = benchmark_with_targets.reindex(np.random.permutation(benchmark_with_targets.index)).reset_index(drop=True)
-shuffled_df
-
-
 
 # perhaps we should split the data set in an 80:20 proportion for simplicity
 # assuming that each visit as a seperate sample from the disease progression
 
 train_fraction = 0.8
-
 train = benchmark_with_targets.iloc[:int(len(benchmark_with_targets) * train_fraction)].reset_index(drop=True)
 test = benchmark_with_targets.iloc[int(len(benchmark_with_targets) * train_fraction):].reset_index(drop=True)
 
@@ -153,8 +119,6 @@ print(f'train set size: {len(train)}')
 print(f'test set size: {len(test)}')
 print(f'full set size: {len(benchmark_with_targets)}')
 
-
-
 # save train and test sets to csv
 train_csv = 'benchmark_train.csv'
 test_csv = 'benchmark_test.csv'
@@ -162,10 +126,9 @@ test_csv = 'benchmark_test.csv'
 train.to_csv(os.path.join(directory, train_csv), index=False)
 test.to_csv(os.path.join(directory, test_csv), index=False)
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     
-    
-    
-    load_dataset()
-    preprocess()
-    create_dataset
+#     csv = ''
+#     load_dataset()
+#     preprocess_dataset()
+#     export_dataset()
