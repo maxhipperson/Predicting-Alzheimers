@@ -4,8 +4,6 @@ from sklearn.model_selection import train_test_split
 import os
 
 def load_dataset(directory, filename):
-    
-    # load csv
     csv_path = os.path.join(directory, filename)
     df = pd.read_csv(csv_path)
     return df
@@ -57,49 +55,43 @@ def preprocessing(df):
     for feature_list in features.values():
         columns_of_interest += feature_list
 
-    # The csf columns should be numeric
+    # the csf columns should be numeric
     for feature in features['csf']:
         df.loc[:, feature] = pd.to_numeric(df[feature], errors='coerce')
         
-    # --> add future predictions
-    
-    # sort the data frame by RID and AGE_AT_EXAM inplace
-    
-    # select the prediction features and shift them up by 1
-    # (so each visit has the prediction of the next visit)
+    # add future predictions
+    # select the prediction features and shift them up by 1 (so each visit has the prediction of the next visit)
     # --> the final visit will have NaN (because of the shift)
     # --> shift will apply per group - https://stackoverflow.com/questions/26280345/pandas-shift-down-values-by-one-row-within-a-group
     target_features = [''.join(['target_', value]) for value in features['prediction']]
     df.sort_values(['RID', 'AGE_AT_EXAM'], inplace=True)
-    # grouped_by_rid = df.groupby('RID')
     for feature in features['prediction']:
         df.loc[:, f'target_{feature}'] = df.groupby('RID')[feature].shift(periods=-1).values
+        
+    # drop nans in diagnosis (this is the minimum we have to drop to add the target diagnosis)
+    df = df.dropna(subset=['diagnosis', 'target_diagnosis'])
 
-    # --> Making the benchmark datasets
+    ################################
+    # Making the benchmark dataset #
+    ################################
     
-    # exclude features
+    # select only the features we want in the benchmark dataset
     excluded_features = features['pet'] + features['csf']
     benchmark_df = df[[feature for feature in columns_of_interest if feature not in excluded_features] + target_features]
     
-    # drop nans
-    benchmark_df = benchmark_df.dropna(subset=features['prediction'] + target_features)
-    
+    # encode the diagnosis and target diagnosis
     from sklearn.preprocessing import OrdinalEncoder
     
-    # encode the diagnosis and target diagnosis
-    oe = OrdinalEncoder(categories=[['CN', 'MCI', 'AD']]) # map 'CN':0 'MCI':1 'AD':2 as categories
+    oe = OrdinalEncoder(categories=[['CN', 'MCI', 'AD']]) # map 'CN':0 'MCI':1 'AD':2
     benchmark_df.loc[:, 'diagnosis_encoded'] = oe.fit_transform(benchmark_df['diagnosis'].to_numpy().reshape(-1, 1))
     benchmark_df.loc[:, 'target_diagnosis_encoded'] = oe.transform(benchmark_df['target_diagnosis'].to_numpy().reshape(-1, 1))
     
-    # why are there 2s in the APOE4 column?
-    # Looks like around 10% of the APOE4 data have a value of 2...
-    # Just as a quick fix for the moment we'll drop these values until we figure out what's going on.
-    benchmark_no2s_df = benchmark_df[benchmark_df['APOE4'] != 2.]
+    # For some readson there are 2s in the APOE4 column so we'll just drop these as a quick fix
+    benchmark_df = benchmark_df[benchmark_df['APOE4'] != 2.]
     
-    return benchmark_no2s_df
+    return df, benchmark_df
 
 def export_dataset(directory, filename, df):
-    
     df.to_csv(os.path.join(directory, filename), index=False)
 
 if __name__ == "__main__":
@@ -111,8 +103,14 @@ if __name__ == "__main__":
     # load csv
     directory = './data'
     csv = 'TADPOLE_D1_D2.csv'
-    new_csv = 'example.csv'
+    
+    new_csv = 'example'
+    
+    df_csv = f'{new_csv}.csv'
+    benchmark_df_csv = f'{new_csv}_benchmark.csv'
     
     df = load_dataset(directory, csv)
-    df = preprocessing(df)
-    export_dataset(directory, new_csv, df)
+    df, benchmark_df = preprocessing(df)
+    
+    export_dataset(directory, df_csv, df)
+    export_dataset(directory, benchmark_df_csv, benchmark_df)
