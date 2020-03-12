@@ -8,7 +8,7 @@ def main():
     directory = './data'
     
     csv = 'TADPOLE_D1_D2'
-    new_csv = 'preprocessed_d1d2'
+    new_csv = 'd1d2_imputed'
     
     csv_path = os.path.join(directory, f'{csv}.csv')
     df = pd.read_csv(csv_path)
@@ -68,6 +68,11 @@ def main():
     df.sort_values(['RID', 'AGE_AT_EXAM'], inplace=True)
     for feature in features['prediction']:
         df.loc[:, f'target_{feature}'] = df.groupby('RID')[feature].shift(periods=-1).values
+        
+    # impute missing diagnosis values where the diagnosis before and after is the same
+    df['prev_diagnosis'] = df.groupby('RID')['diagnosis'].shift(periods=1)
+    cond = df['target_diagnosis'] == df['prev_diagnosis']
+    df['diagnosis'] = df['target_diagnosis'].where(cond, df['diagnosis'])
 
     ################################
     # Making the benchmark dataset #
