@@ -82,8 +82,8 @@ def main():
     benchmark_df = df.dropna(subset=['diagnosis', 'target_diagnosis'])
     
     # select only the features we want in the benchmark dataset
-        excluded_features = features['pet'] + features['csf']
-        benchmark_df = benchmark_df[[feature for feature in columns_of_interest if feature not in excluded_features] + target_features]
+    excluded_features = features['pet'] + features['csf']
+    benchmark_df = benchmark_df[[feature for feature in columns_of_interest if feature not in excluded_features] + target_features]
     
     # encode the diagnosis and target diagnosis
     from sklearn.preprocessing import OrdinalEncoder
