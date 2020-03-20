@@ -8,7 +8,7 @@ def main():
     directory = './data'
     
     csv = 'TADPOLE_D1_D2'
-    new_csv = 'd1d2'
+    new_csv = 'd1d2_imputed'
     
     csv_path = os.path.join(directory, f'{csv}.csv')
     df = pd.read_csv(csv_path)
