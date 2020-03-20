@@ -60,6 +60,11 @@ def main():
     for feature in features['csf']:
         df.loc[:, feature] = pd.to_numeric(df[feature], errors='coerce')
         
+    # impute missing diagnosis values where the diagnosis before and after is the same
+    df['prev_diagnosis'] = df.groupby('RID')['diagnosis'].shift(periods=1)
+    cond = df['target_diagnosis'] == df['prev_diagnosis']
+    df['diagnosis'] = df['target_diagnosis'].where(cond, df['diagnosis'])
+        
     # add future predictions
     # select the prediction features and shift them up by 1 (so each visit has the prediction of the next visit)
     # --> the final visit will have NaN (because of the shift)
@@ -68,11 +73,6 @@ def main():
     df.sort_values(['RID', 'AGE_AT_EXAM'], inplace=True)
     for feature in features['prediction']:
         df.loc[:, f'target_{feature}'] = df.groupby('RID')[feature].shift(periods=-1).values
-        
-    # impute missing diagnosis values where the diagnosis before and after is the same
-    df['prev_diagnosis'] = df.groupby('RID')['diagnosis'].shift(periods=1)
-    cond = df['target_diagnosis'] == df['prev_diagnosis']
-    df['diagnosis'] = df['target_diagnosis'].where(cond, df['diagnosis'])
 
     ################################
     # Making the benchmark dataset #
@@ -82,8 +82,8 @@ def main():
     benchmark_df = df.dropna(subset=['diagnosis', 'target_diagnosis'])
     
     # select only the features we want in the benchmark dataset
-    excluded_features = features['pet'] + features['csf']
-    benchmark_df = benchmark_df[[feature for feature in columns_of_interest if feature not in excluded_features] + target_features]
+        excluded_features = features['pet'] + features['csf']
+        benchmark_df = benchmark_df[[feature for feature in columns_of_interest if feature not in excluded_features] + target_features]
     
     # encode the diagnosis and target diagnosis
     from sklearn.preprocessing import OrdinalEncoder
