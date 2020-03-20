@@ -62,9 +62,10 @@ def main():
         
     # impute missing diagnosis values where the diagnosis before and after is the same
     df['prev_diagnosis'] = df.groupby('RID')['diagnosis'].shift(periods=1)
-    cond = df['target_diagnosis'] == df['prev_diagnosis']
-    df['diagnosis'] = df['target_diagnosis'].where(cond, df['diagnosis'])
-        
+    df['next_diagnosis'] = df.groupby('RID')['diagnosis'].shift(periods=-1)
+    cond = df['prev_diagnosis'] == df['next_diagnosis']
+    df['diagnosis'] = df['next_diagnosis'].where(cond, df['diagnosis'])
+    
     # add future predictions
     # select the prediction features and shift them up by 1 (so each visit has the prediction of the next visit)
     # --> the final visit will have NaN (because of the shift)
