@@ -6,11 +6,9 @@ We look specifically at Alzheimer's disease.
 
 ## Project Setup
 
-Because we're only in the preliminary steps etc, all of the scipts / notebooks can just be in the top level folder.
+All of the scripts etc are in the top level.
 
-However, it's **super important** that you make a directory called `data`.
-
-Once you download the data (from either the [ADIS](https://ida.loni.usc.edu/login.jsp) website or the dropbox link _sent in slack_) then place `TADPOLE_D1_D2.csv` in `data`.
+It's **super important** you make a directory called `data`, and place `TADPOLE_D1_D2.csv` in here, once you download the data from the [ADIS website](https://ida.loni.usc.edu/login.jsp).
 
 A.k.a. follow the directory structure below.
 
@@ -24,44 +22,48 @@ A.k.a. follow the directory structure below.
 
 ## Generating the benchmark datasets
 
-Run `create_benchmark_dataset.py`. Make sure that `directory` is pointed at the `data` folder.
+Run `create_dataset.py`. Make sure that `csv_path` is set correctly.
 
 ```
-# load csv
-directory = './data'
-
-csv = 'TADPOLE_D1_D2'
-new_csv = 'preprocessed_d1d2'
+csv_path = './data/TADPOLE_D1_D2.csv'
+df = pd.read_csv(csv_path)
 ```
 
-`csv` and `new_csv` indicate the base dataset to use and the name of the dataset ot be generated respectively.
 
-Two datasets are created; `f'{new_csv}.csv'` and `f'{new_csv}_benchmark.csv'` which correspond to the datset with **standard preprocessing** and **benchmark preprocessing** applied respectively.
+Two datasets are created: `./data/dataset_standard.csv` and `./data/dataset_benchmark.csv` which correspond to the datset with **standard preprocessing** and **benchmark preprocessing** applied respectively.
 
 Standard preprocessing:
 - Maps diagnosis
 - Adds age at exam
-- Adds target features
+- Converts csf features to numeric
 - Imputes missing diagnosis values where the diagnosis before and after is the same
+- Adds the target features
 
 Benchmark preprocessing:
 - Drops NaNs in `diagnosis` and `target_diagnosis` (needed for next step)
-- Selects feature subset
 - Encodes `diagnosis` and `target_diagnosis`
 - Drops entries where `APOE` is equal to 2
 
-Features included in the benchmark data:
+The resulting datasets **contain all features** orginally in `TADPOLE_D1_D2.csv`.
 
 ```
-['RID', 'diagnosis', 'ADAS13', 'Ventricles', 'CDRSB', 'ADAS11', 'MMSE',RAVLT_immediate, 'Hippocampus', 'WholeBrain', 'Entorhinal', 'MidTemp', 'APOE4', 'AGE_AT_EXAM', 'target_diagnosis', 'target_ADAS13', 'target_Ventricles', 'diagnosis_encoded', 'target_diagnosis_encoded']
+
 ```
 
 ## Importing the datasets
 
-I've made a util for importing the benchmark datasets. You can specify whether to drop entries containing NaNs, set the taget to be the `y` variable (by feature name), and specify the train:test split.
+The datasets can be imported by either reading in the csv or using the util.
+
+The util will handle:
+- Loading the dataset
+- Selecting a featureset (specified in a configuratuion file)
+- Dropping NaNs
+- Splitting into an x and y, train and test sets
+
+See the method documentation etc.
 
 ```
-def load_benchmark_dataset(csv, dropna=False, y_column='target_diagnosis_encoded', test_size=0.1):
+def load_benchmark_dataset(dataset_csv, features_yaml, dropna=False, y_column='target_diagnosis_encoded', test_size=0.1):
 ```
 
 The train:test split is default 90:10 (pretty standard) and has been **shuffled** before being split.
@@ -72,12 +74,37 @@ Use the loading util as below (see `data_exploration_02.ipynb` for an example).
 from utils import utils
 import pandas as pd
 
-csv = './data/preprocessed_d1d2_benchmark.csv'
-df, x, y, x_train, x_test, y_train, y_test = utils.load_benchmark_dataset(csv, dropna=True)
-df_na, x_na, y_na, x_train_na, x_test_na, y_train_na, y_test_na = utils.load_benchmark_dataset(csv)
+dataset = './data/dataset_benchmark.csv'
+featureset = './features_benchmark.yaml'
+
+df, x, y, x_train, x_test, y_train, y_test = utils.load_benchmark_dataset(dataset, featureset, dropna=True)
 ```
 
-For an example of importing the dataset with standard preproccessing see `data_exploration_01.ipynb`
+## Featuresets
+
+Features sets are specified in `some_set_of_features.yaml` files located in `./features/`
+
+For example:
+
+```
+dataset: [RID]
+prediction: [diagnosis_encoded, ADAS13, Ventricles]
+cognitive_tests: [CDRSB, ADAS11, MMSE, RAVLT_immediate]
+mri: [Hippocampus, WholeBrain, Entorhinal, MidTemp]
+# pet: [FDG, AV45]
+# csf: [ABETA_UPENNBIOMK9_04_19_17, TAU_UPENNBIOMK9_04_19_17, PTAU_UPENNBIOMK9_04_19_17]
+risk_factors: [APOE4, AGE_AT_EXAM]
+```
+
+Commented lines are ignored.
+
+The `load_features` util handles essentially converting a dictionary of lists into a sinlge list of features.
+
+The example above will be converted to:
+
+```
+[RID, diagnosis_encoded, ADAS13, Ventricles, CDRSB, ADAS11, MMSE, RAVLT_immediate, Hippocampus, WholeBrain, Entorhinal, MidTemp, APOE4, AGE_AT_EXAM]
+```
 
 ## **Note**
 
