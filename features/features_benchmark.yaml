@@ -1,0 +1,7 @@
+dataset: [RID]
+prediction: [diagnosis_encoded, ADAS13, Ventricles]
+cognitive_tests: [CDRSB, ADAS11, MMSE, RAVLT_immediate]
+mri: [Hippocampus, WholeBrain, Entorhinal, MidTemp]
+# pet: [FDG, AV45]
+# csf: [ABETA_UPENNBIOMK9_04_19_17, TAU_UPENNBIOMK9_04_19_17, PTAU_UPENNBIOMK9_04_19_17]
+risk_factors: [APOE4, AGE_AT_EXAM]
