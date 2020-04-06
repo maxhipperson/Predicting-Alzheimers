@@ -1,0 +1,4 @@
+features: ['indicator_FDG', 't_last_visit',
+       'indicator_PTAU_UPENNBIOMK9_04_19_17', 'Ventricles', 'APOE4',
+       'AGE_AT_EXAM', 'state_change_count', 'WholeBrain',
+       'indicator_AV45', 't_first_visit', 'Entorhinal']
