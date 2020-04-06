@@ -29,7 +29,7 @@ def main():
     # add the age at exam 
     df.EXAMDATE = pd.to_datetime(df.EXAMDATE)
     df.sort_values(by=['RID','EXAMDATE'], inplace=True)
-    df.loc[:, 'AGE_AT_EXAM'] = df.groupby('RID').apply(lambda x:(x['EXAMDATE']-x['EXAMDATE'].min()).dt.days/365.25 + x['AGE'].min()).values
+    df.loc[:, 'AGE_AT_EXAM'] = df.groupby('RID').apply(lambda x: (x['EXAMDATE'] - x['EXAMDATE'].min()).dt.days / 365.25 + x['AGE'].min()).values
     
     # bear in mind that here we make no distrinction between catagorical and numerical fields yet
     # the csf columns should be numeric
@@ -55,6 +55,34 @@ def main():
     # save the df
     dataset_save_path_standard = './data/dataset_standard.csv'
     df.to_csv(dataset_save_path_standard, index=False)
+    
+    #######################
+    # Add custom features #
+    #######################
+    
+    # visit_count
+    df['visit_count'] = df.groupby('RID').apply(lambda x: x['RID'].notna()).groupby('RID').cumsum().astype('int').values
+
+    # t_first_visit
+    df['t_first_visit'] = df.groupby('RID').apply(lambda x: (x['EXAMDATE'] - x['EXAMDATE'].min()).dt.days / 365.25).values
+
+    # t_last_visit
+    df['t_last_visit'] = df['t_first_visit'] - df.groupby('RID')['t_first_visit'].shift(periods=1)
+
+    # indicators
+    indicators = []
+    
+    # pet
+    pet_features = ['FDG', 'AV45']
+    for feature in pet_features:
+        indicators.append(f'indicator_{feature}')
+        df[f'indicator_{feature}'] = df[feature].notna().astype(int)
+    
+    # csf
+    csf_features = ['ABETA_UPENNBIOMK9_04_19_17', 'TAU_UPENNBIOMK9_04_19_17', 'PTAU_UPENNBIOMK9_04_19_17']
+    for feature in csf_features:
+        indicators.append(f'indicator_{feature}')
+        df[f'indicator_{feature}'] = df[feature].notna().astype(int)
 
     ################################
     # Making the benchmark dataset #
@@ -62,6 +90,9 @@ def main():
     
     # drop nans in diagnosis (this is the minimum we have to drop to add the target diagnosis)
     df = df.dropna(subset=['diagnosis', 'target_diagnosis'])
+    
+    # state change count
+    df['state_change_count'] = df.groupby('RID').apply(lambda x: x['diagnosis'] != x['target_diagnosis']).groupby('RID').cumsum().astype('int').values
     
     # encode the diagnosis and target diagnosis
     from sklearn.preprocessing import OrdinalEncoder

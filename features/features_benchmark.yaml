@@ -1,4 +1,4 @@
-dataset: [RID]
+# dataset: [RID]
 prediction: [diagnosis_encoded, ADAS13, Ventricles]
 cognitive_tests: [CDRSB, ADAS11, MMSE, RAVLT_immediate]
 mri: [Hippocampus, WholeBrain, Entorhinal, MidTemp]

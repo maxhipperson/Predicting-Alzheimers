@@ -18,7 +18,8 @@ def load_features(filepath):
     
     return features
 
-def load_benchmark_dataset(dataset_csv, features_yaml, dropna=False, y_column='target_diagnosis_encoded', test_size=0.1):
+def load_benchmark_dataset(dataset_csv, features_yaml, dropna=False, y_column='target_diagnosis_encoded', 
+                           test_size=0.1, only_state_changes=False):
     """Loads the bench mark dataset from csv and splits it into train and test sets.
     
     Arguments:
@@ -42,6 +43,9 @@ def load_benchmark_dataset(dataset_csv, features_yaml, dropna=False, y_column='t
     print(f'Loading dataset from {dataset_csv}')
     
     df = pd.read_csv(dataset_csv)
+    
+    if only_state_changes:
+        df = df.query('diagnosis != target_diagnosis')
 
     x_columns = load_features(features_yaml)
     df = df[x_columns + [y_column]]
